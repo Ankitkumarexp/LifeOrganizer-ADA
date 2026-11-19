@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17324d">
+  <title>Life Organizer</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" data-view="dashboard"><span class="brand-mark">L</span><span>Life Organizer<small>PERSONAL WORKSPACE</small></span></a>
+      <div class="nav-caption">WORKSPACE</div>
+      <nav id="navigation" aria-label="Main navigation"></nav>
+      <div class="sidebar-note">Private, local-first workspace<br><span>Only this computer can access it.</span></div>
+    </aside>
+    <main class="main-area">
+      <header class="topbar">
+        <div><p class="eyebrow">YOUR DAY, ORGANIZED</p><h1 id="page-title">Overview</h1></div>
+        <div class="topbar-right"><span id="today-label"></span><span class="user-chip"><i></i><span id="user-name">Local account</span></span></div>
+      </header>
+      <div id="notice" class="notice" role="status" aria-live="polite"></div>
+      <section id="content" class="content" aria-live="polite"></section>
+    </main>
+  </div>
+  <dialog id="record-dialog" class="modal">
+    <form id="record-form" method="dialog">
+      <div class="modal-heading"><div><p class="eyebrow">LIFE ORGANIZER</p><h2 id="record-dialog-title">Add record</h2></div><button class="icon-button" value="cancel" aria-label="Close">×</button></div>
+      <div id="record-fields" class="form-grid"></div>
+      <div class="modal-actions"><button class="button secondary" value="cancel">Cancel</button><button class="button primary" id="record-save" value="save">Save record</button></div>
+    </form>
+  </dialog>
+  <script src="/app.js" defer></script>
+</body>
+</html>
