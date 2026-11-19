@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpSession;
+import jakarta.servlet.http.Cookie;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -84,15 +84,15 @@ class WebAuthenticationTest {
         jdbc.update("INSERT INTO groceries(user_id,item_name,category,quantity,purchased_status) VALUES(?,?,?,?,?)",
             userId("bob@example.test"), "Bob's list", "Home", "1", "Pending");
 
-        MockHttpSession alice = login("alice@example.test");
-        mockMvc.perform(get("/api/records/groceries").session(alice))
+        Cookie alice = login("alice@example.test");
+        mockMvc.perform(get("/api/records/groceries").cookie(alice))
             .andExpect(status().isOk())
             .andExpect(content().json("""
                 [{"item_name":"Alice's list","category":"Home","quantity":"1","purchased_status":"Pending"}]
                 """));
 
-        MockHttpSession bob = login("bob@example.test");
-        mockMvc.perform(get("/api/records/groceries").session(bob))
+        Cookie bob = login("bob@example.test");
+        mockMvc.perform(get("/api/records/groceries").cookie(bob))
             .andExpect(status().isOk())
             .andExpect(content().json("""
                 [{"item_name":"Bob's list","category":"Home","quantity":"1","purchased_status":"Pending"}]
@@ -110,14 +110,14 @@ class WebAuthenticationTest {
             .andExpect(status().isCreated());
     }
 
-    private MockHttpSession login(String email) throws Exception {
+    private Cookie login(String email) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                 .with(csrf())
                 .param("email", email)
                 .param("password", PASSWORD))
             .andExpect(status().isOk())
             .andReturn();
-        return (MockHttpSession) result.getRequest().getSession(false);
+        return result.getResponse().getCookie("SESSION");
     }
 
     private int userId(String email) {

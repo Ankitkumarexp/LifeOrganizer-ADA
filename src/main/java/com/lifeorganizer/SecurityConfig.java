@@ -79,7 +79,7 @@ public class SecurityConfig {
             .logout(logout -> logout
                 .logoutUrl("/api/auth/logout")
                 .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
+                .deleteCookies("SESSION")
                 .logoutSuccessHandler((request, response, authentication) ->
                     response.setStatus(HttpStatus.NO_CONTENT.value())))
             .exceptionHandling(exceptions -> exceptions

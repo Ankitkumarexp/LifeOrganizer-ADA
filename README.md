@@ -66,14 +66,13 @@ On **Overview**, select **Add demo data** to add clearly labeled fictional recor
 ## Backup and restore
 Use **Backup & Restore → Download backup JSON** to save the selected account's records. Store the file somewhere safe. **Restore** replaces the current account's application records with the contents of the selected backup, so use it carefully. The backup does not contain account passwords.
 
-## Deploy to Railway
-1. Create a Railway project and add a MySQL service.
-2. Deploy this GitHub repository as a web service using the included `Dockerfile`.
-3. Link the MySQL service to the web service so `MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER` and `MYSQLPASSWORD` are available.
-4. Set `SERVER_ADDRESS=0.0.0.0` and `SESSION_COOKIE_SECURE=true` in the web service variables, then generate a public domain.
-5. Set the service health check path to `/health`.
+## Deploy for free on Vercel
+1. Create a Vercel Hobby project from this GitHub repository. The root `Dockerfile` selects Vercel's Container runtime.
+2. Create a free TiDB Cloud Starter cluster, then connect it to the Vercel project with the TiDB Cloud Marketplace integration.
+3. Confirm the integration provides `TIDB_HOST`, `TIDB_PORT`, `TIDB_USER`, `TIDB_PASSWORD` and `TIDB_DATABASE`.
+4. Set `PORT=80`, `SERVER_ADDRESS=0.0.0.0` and `SESSION_COOKIE_SECURE=true` for the Vercel deployment.
 
-The app applies `database/upgrade_all.sql` to the configured database on startup. Railway hosting and database usage may incur charges; review the current plan and usage before deploying. Public account signup does not include email verification or password recovery.
+The app applies `database/upgrade_all.sql` at startup and stores sign-in sessions in the shared TiDB database so they survive container scale-down. Use a new hosted database; local records are not uploaded. Vercel Hobby and TiDB Starter are free within their current usage quotas, and deployments may pause when a quota is reached. Public signup currently has no email verification or password recovery.
 
 ## Notes
 - Keep a copy of your previous project folder before replacing source files.
