@@ -1,6 +1,4 @@
--- SAFE ADDITIVE UPGRADE: keeps existing tables and records intact.
-CREATE DATABASE IF NOT EXISTS life_organizer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE life_organizer;
+-- SAFE ADDITIVE UPGRADE: run against the selected database; keeps existing tables and records intact.
 
 CREATE TABLE IF NOT EXISTS users (
  user_id INT AUTO_INCREMENT PRIMARY KEY,

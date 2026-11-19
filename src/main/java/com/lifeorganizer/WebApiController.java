@@ -18,6 +18,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -124,11 +126,14 @@ public class WebApiController {
     }
 
     private int userId() {
-        Integer id = jdbc.query("SELECT user_id FROM users ORDER BY user_id LIMIT 1",
-            rs -> rs.next() ? rs.getInt(1) : null);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sign in to continue.");
+        }
+        Integer id = jdbc.query("SELECT user_id FROM users WHERE email=?",
+            rs -> rs.next() ? rs.getInt(1) : null, authentication.getName());
         if (id == null) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                "No account exists in the life_organizer database. Add or restore an account first.");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sign in to continue.");
         }
         return id;
     }
@@ -642,7 +647,6 @@ class WebApiErrors {
     @ExceptionHandler(DataAccessException.class)
     ResponseEntity<Map<String, String>> databaseError(DataAccessException ex) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-            .body(Map.of("error", "Database operation failed: "
-                + Objects.toString(ex.getMostSpecificCause().getMessage(), "check MySQL settings and database upgrades.")));
+            .body(Map.of("error", "Database operation failed. Please try again later."));
     }
 }

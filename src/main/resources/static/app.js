@@ -22,28 +22,82 @@ const recordDialog = document.querySelector("#record-dialog");
 const recordForm = document.querySelector("#record-form");
 const recordFields = document.querySelector("#record-fields");
 const notice = document.querySelector("#notice");
+const appShell = document.querySelector("#app-shell");
+const authScreen = document.querySelector("#auth-screen");
+const authForm = document.querySelector("#auth-form");
+const authMessage = document.querySelector("#auth-message");
 let bootstrap = null;
 let activeView = "dashboard";
 let calendarMonth = new Date();
 let toastTimer;
+let reminderTimer = null;
+let authMode = "login";
 const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
 }[char]));
 const money = value => `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const nice = value => String(value ?? "").replaceAll("_", " ");
 
+function readCookie(name) {
+  const cookie = document.cookie.split("; ").find(item => item.startsWith(`${name}=`));
+  return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : "";
+}
+
 async function api(path, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  const headers = { ...(options.body ? { "Content-Type": "application/json" } : {}), ...options.headers };
+  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+    let token = readCookie("XSRF-TOKEN");
+    if (!token) {
+      const csrfResponse = await fetch("/api/auth/csrf", { credentials: "same-origin" });
+      if (!csrfResponse.ok) throw new Error("Could not establish a secure session.");
+      token = readCookie("XSRF-TOKEN");
+    }
+    if (!token) throw new Error("Could not establish a secure session.");
+    headers["X-XSRF-TOKEN"] = token;
+  }
   const response = await fetch(`/api${path}`, {
     ...options,
-    headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...options.headers }
+    method,
+    credentials: "same-origin",
+    headers
   });
   const type = response.headers.get("content-type") || "";
   const body = type.includes("application/json") ? await response.json() : await response.text();
   if (!response.ok) {
     const message = body?.error || body?.detail || body?.message || `Request failed (${response.status})`;
-    throw new Error(message);
+    throw Object.assign(new Error(message), { status: response.status });
   }
   return body;
+}
+
+function showAuth(message = "", isError = false) {
+  if (reminderTimer) {
+    clearInterval(reminderTimer);
+    reminderTimer = null;
+  }
+  authScreen.hidden = false;
+  appShell.hidden = true;
+  authMessage.textContent = message;
+  authMessage.classList.toggle("show", Boolean(message));
+  authMessage.classList.toggle("error", isError);
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const registering = mode === "register";
+  document.querySelector("#auth-title").textContent = registering ? "Create your account" : "Sign in";
+  document.querySelector("#auth-description").textContent = registering
+    ? "Create a private workspace for your personal records."
+    : "Sign in to open your private workspace.";
+  document.querySelector("#auth-name-field").hidden = !registering;
+  document.querySelector("#auth-name").required = registering;
+  document.querySelector("#auth-password").autocomplete = registering ? "new-password" : "current-password";
+  document.querySelector("#auth-submit").textContent = registering ? "Create account" : "Sign in";
+  document.querySelector("#auth-switch-text").textContent = registering ? "Already have an account?" : "New here?";
+  document.querySelector("#auth-toggle").textContent = registering ? "Sign in" : "Create an account";
+  authMessage.textContent = "";
+  authMessage.classList.remove("show", "error");
 }
 
 function showNotice(message, isError = false) {
@@ -108,6 +162,10 @@ async function openView(view) {
     if (view === "algorithms") return renderAlgorithms();
     if (view === "reports") return await renderReports();
   } catch (error) {
+    if (error.status === 401) {
+      showAuth("Your session ended. Sign in again.");
+      return;
+    }
     content.innerHTML = `<div class="panel"><h3>Could not load this page</h3><p class="muted">${escapeHtml(error.message)}</p><p class="footer-note">Check MySQL settings in the terminal and confirm the database upgrade has been applied.</p></div>`;
   }
 }
@@ -452,6 +510,7 @@ async function pollReminders() {
     }
   } catch (error) {
     console.warn("Reminder polling failed:", error.message);
+    if (error.status === 401) showAuth("Your session ended. Sign in again.");
   }
 }
 
@@ -636,20 +695,72 @@ function runAlgorithm() {
   }
 }
 
+async function loadWorkspace() {
+  bootstrap = await api("/bootstrap");
+  authScreen.hidden = true;
+  appShell.hidden = false;
+  document.querySelector("#user-name").textContent = bootstrap.user.name || bootstrap.user.email;
+  await openView("dashboard");
+  if (!reminderTimer) {
+    pollReminders();
+    reminderTimer = setInterval(pollReminders, 30000);
+  }
+}
+
 async function initialize() {
   renderNavigation();
   const now = new Date();
   document.querySelector("#today-label").textContent = now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  document.querySelector("#auth-toggle").addEventListener("click", () =>
+    setAuthMode(authMode === "login" ? "register" : "login"));
+  authForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const email = document.querySelector("#auth-email").value.trim();
+    const password = document.querySelector("#auth-password").value;
+    const submit = document.querySelector("#auth-submit");
+    submit.disabled = true;
+    try {
+      if (authMode === "register") {
+        const name = document.querySelector("#auth-name").value.trim();
+        await api("/auth/register", {
+          method: "POST",
+          body: JSON.stringify({ name, email, password })
+        });
+        document.querySelector("#auth-email").value = email;
+        document.querySelector("#auth-password").value = "";
+        setAuthMode("login");
+        showAuth("Account created. Sign in to continue.");
+      } else {
+        await api("/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ email, password })
+        });
+        await loadWorkspace();
+      }
+    } catch (error) {
+      showAuth(error.message, true);
+    } finally {
+      submit.disabled = false;
+    }
+  });
+  document.querySelector("#logout").addEventListener("click", async () => {
+    try {
+      await api("/auth/logout", { method: "POST" });
+      bootstrap = null;
+      showAuth("You have signed out.");
+    } catch (error) {
+      showToast(error.message, true);
+    }
+  });
   try {
-    bootstrap = await api("/bootstrap");
-    document.querySelector("#user-name").textContent = bootstrap.user.name || bootstrap.user.email || "Local account";
-    await openView("dashboard");
-    pollReminders();
-    setInterval(pollReminders, 30000);
+    await loadWorkspace();
   } catch (error) {
-    setPage("dashboard", "Overview");
-    content.innerHTML = `<div class="panel"><p class="eyebrow">DATABASE CONNECTION REQUIRED</p><h2>Could not open your workspace</h2><p class="muted">${escapeHtml(error.message)}</p>
-      <p>Set <code>LIFEORG_DB_USER</code> and <code>LIFEORG_DB_PASSWORD</code> in the terminal, then restart the web app. Use the same MySQL account that contains your Life Organizer records.</p></div>`;
+    if (error.status === 401) {
+      showAuth();
+    } else {
+      showAuth(error.message, true);
+    }
   }
 }
 

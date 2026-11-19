@@ -27,8 +27,9 @@ The upgrade is additive. It creates any missing tables for users, groceries, bil
 
 1. Open MySQL Workbench and connect to the same local MySQL instance used by your existing project.
 2. Open `database/upgrade_all.sql`.
-3. Execute the script once. It creates `life_organizer` if needed and selects it.
-4. Do not run the original `database/schema.sql` again just to upgrade; use this additive script.
+3. If needed, create and select the database with `CREATE DATABASE life_organizer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; USE life_organizer;`.
+4. Execute the additive script against the selected database. The web app also applies this idempotent script at startup.
+5. Do not run the original `database/schema.sql` again just to upgrade; use this additive script.
 
 Global Search reads from the module tables; upcoming Reminders are generated from medicines, calendar events, tasks, and bills, with snooze/completion history stored in `reminder_actions`.
 
@@ -45,7 +46,7 @@ If you prefer to set credentials manually, set `LIFEORG_DB_USER` and `LIFEORG_DB
 
 When startup completes, open **http://localhost:8081** in your browser. The service binds to `127.0.0.1` and is intended for use on this computer only. If port 8081 is occupied, choose another port before launch, for example `$env:PORT = "8090"`, and open `http://localhost:8090`.
 
-This edition has no sign-in page and uses the first account in `life_organizer.users`. Do not expose it to a network or the public internet; add authentication and authorization before any shared or hosted deployment.
+The web edition supports separate accounts with sign-in and per-account records. Passwords are stored as PBKDF2 hashes. Do not use the local database for a public deployment; create a separate hosted database and keep credentials in the hosting provider's secret variables.
 
 The original desktop UI can still be started with `.\scripts\run.ps1`.
 
@@ -64,6 +65,15 @@ On **Overview**, select **Add demo data** to add clearly labeled fictional recor
 
 ## Backup and restore
 Use **Backup & Restore → Download backup JSON** to save the selected account's records. Store the file somewhere safe. **Restore** replaces the current account's application records with the contents of the selected backup, so use it carefully. The backup does not contain account passwords.
+
+## Deploy to Railway
+1. Create a Railway project and add a MySQL service.
+2. Deploy this GitHub repository as a web service using the included `Dockerfile`.
+3. Link the MySQL service to the web service so `MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER` and `MYSQLPASSWORD` are available.
+4. Set `SERVER_ADDRESS=0.0.0.0` and `SESSION_COOKIE_SECURE=true` in the web service variables, then generate a public domain.
+5. Set the service health check path to `/health`.
+
+The app applies `database/upgrade_all.sql` to the configured database on startup. Railway hosting and database usage may incur charges; review the current plan and usage before deploying. Public account signup does not include email verification or password recovery.
 
 ## Notes
 - Keep a copy of your previous project folder before replacing source files.

@@ -15,9 +15,26 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; min-height: 100vh; color: var(--ink); background: var(--canvas); }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
+.auth-screen { display: grid; min-height: 100vh; place-items: center; padding: 24px; background: radial-gradient(circle at top left, #e8f4f1, transparent 42%), var(--canvas); }
+.auth-card { width: min(430px, 100%); padding: 34px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); box-shadow: 0 16px 48px #17324d12; }
+.auth-brand { margin: 0 0 38px; color: var(--ink); }
+.auth-brand small { color: var(--muted); }
+.auth-card h1 { margin-bottom: 8px; }
+.auth-card > .muted { margin-bottom: 24px; font-size: 13px; }
+.auth-card form { display: grid; gap: 16px; }
+.auth-card .field { font-size: 12px; }
+.auth-card .field .input { margin-top: 7px; }
+.auth-card form > .button { width: 100%; margin-top: 3px; }
+.auth-message { display: none; margin-bottom: 14px; padding: 10px 12px; border-radius: 7px; color: #21695f; background: #edfaf6; font-size: 12px; }
+.auth-message.show { display: block; }
+.auth-message.error { color: #963f43; background: #fff3f3; }
+.auth-switch { margin: 22px 0 0; color: var(--muted); text-align: center; font-size: 12px; }
+.text-link { padding: 0; }
+.auth-switch .text-link { margin-left: 4px; }
 .app-shell { display: grid; grid-template-columns: 252px minmax(0, 1fr); min-height: 100vh; }
 .sidebar { position: sticky; top: 0; display: flex; flex-direction: column; height: 100vh; padding: 26px 16px 18px; color: #fff; background: var(--navy); }
 .brand { display: flex; align-items: center; gap: 12px; margin: 0 7px 36px; color: #fff; text-decoration: none; font: 800 17px "Segoe UI", sans-serif; letter-spacing: -.3px; }
@@ -146,6 +163,7 @@ td { color: #344a5f; }
   .topbar { padding: 17px 18px; }
   .topbar-right { gap: 7px; font-size: 10px; }
   .user-chip { padding: 6px 8px; }
+  .auth-card { padding: 26px 21px; }
   .content { padding: 20px 15px 40px; }
   .notice { margin: 10px 15px 0; }
   .cards { gap: 9px; }
